@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.zerock.mapper.MemberMapper">
+
+
+  <resultMap type="org.zerock.domain.MemberVO" id="memberMap">
+    <id property="userid" column="userid"/>
+    <result property="userid" column="userid"/>
+    <result property="userpw" column="userpw"/>
+    <result property="username" column="username"/>
+    <result property="regDate" column="regdate"/>
+    <result property="updateDate" column="updatedate"/>
+    <collection property="authList" resultMap="authMap">
+    </collection> 
+  </resultMap>
+  
+  <resultMap type="org.zerock.domain.AuthVO" id="authMap">
+    <result property="userid" column="userid"/>
+    <result property="auth" column="auth"/>
+  </resultMap>
+  
+  <select id="read" resultMap="memberMap">
+SELECT 
+  mem.userid,  userpw, username, enabled, regdate, updatedate, auth
+FROM 
+  tbl_member mem LEFT OUTER JOIN tbl_member_auth auth on mem.userid = auth.userid 
+WHERE mem.userid = #{userid} 
+  </select>
+  
+  <insert id="memberJoin">
+        insert all
+      into tbl_member (userid, userpw, username, usermail, useraddr1, useraddr2, useraddr3)
+      values (#{userid}, #{userpw}, #{username}, #{usermail}, #{useraddr1}, #{useraddr2}, #{useraddr3})
+      into tbl_member_auth (userid) values (#{userid})
+      select * from dual
+   </insert>
+   
+   <!-- 아이디 중복검사 -->
+  	<select id="idCheck" resultType="int">
+  	
+  		select count(*) from tbl_member where userid = #{userid}
+  	
+  	</select>
+
+<select id="getList" resultType="org.zerock.domain.MemberVO">
+  
+      SELECT * FROM tbl_member
+  
+   </select>
+   
+   <sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							userid like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'C'.toString()">
+							username like '%'||#{keyword}||'%'
+						</when>
+						<when test="type == 'W'.toString()">
+							usermail like '%'||#{keyword}||'%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>  
+   
+   
+   <select id="getListWithPaging" resultType="org.zerock.domain.MemberVO">
+	
+	 <![CDATA[
+	SELECT 
+		userid, username, usermail, useraddr1, regdate, updatedate
+	FROM (
+			SELECT
+			ROWNUM RN, userid, username, usermail, useraddr1, regdate, updatedate
+			FROM tbl_member
+			WHERE
+	]]>
+	
+	<!-- Page339 include 태그 삽입 적용함 -->
+	<include refid="criteria"></include>
+	
+	
+	 -->
+		<![CDATA[
+			rownum <= #{pageNum} * #{amount}
+			)
+		where rn > (#{pageNum} -1) * #{amount} 
+		]]>
+	</select>
+	
+	<select id="getTotalCount" resultType="int">
+      select count(*) from tbl_member
+      where
+    <include refid="criteria"></include>
+    
+    enabled > 0
+
+   </select>
+
+</mapper>
